@@ -76,7 +76,19 @@ class Traffic {
 
         // Reduce global del conteo (entero)
         totalProcesados = DLML.Reduce_Add(locales);
+
+        @SuppressWarnings("unchecked")
+        TreeMap<String,String> all = DLML.Reduce(reportesLocales, (Class<TreeMap<String,String>>) (Class<?>) TreeMap.class,
+            (a,b)-> {
+                b.forEach( (k,v)->a.putIfAbsent(k,v));
+                return a;
+
+            }
+        );
+
+
         if (id == 0) {
+            System.out.println("Total de entradas: " + all.size());
             System.out.println("Total de archivos procesados (global): " + totalProcesados);
         }
 
