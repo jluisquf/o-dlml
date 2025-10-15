@@ -1,4 +1,4 @@
-// Trafico.java (versión sin Arbol.java)
+// Traffic.java (versión sin Arbol.java)
 // Requiere: Data.java (implements DataLike) y DLML con setDataClass(), Get(Data.class), Reduce_Add(int), Gather(Object).
 // Lee waze/<i>.json con org.json; fusiona IDs de alertas en un TreeMap y reduce en root.
 
