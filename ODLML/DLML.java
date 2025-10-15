@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
-
+import java.util.function.BinaryOperator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -239,6 +239,44 @@ class DLML<T extends DataLike> {
         }
         return acc;
     }
+
+
+
+    /**
+     * Reduce (en root) un objeto local con el de los demás procesos usando un combinador.
+     * Cada proceso envía su objeto serializado; el root acumula aplicando 'op'.
+     *
+     * @param local  objeto local
+     * @param cls    clase del objeto (para deserializar en root)
+     * @param op     combinador asociativo (a,b) -> resultado
+     * @return en root, el resultado acumulado; en procesos no-root, devuelve 'local'
+    */
+    public static <T> T Reduce(T local, Class<T> cls, BinaryOperator<T> op)
+        throws MPIException, IOException {
+
+        byte[] dd;
+        int[] tam = new int[1];
+
+        if (DLML.id == ROOT) {
+            T acc = local;
+            for (int i = 1; i < total; i++) {
+                MPI.COMM_WORLD.recv(tam, 1, MPI.INT, i, TAM_BUFFER);
+                dd = new byte[tam[0]];
+                MPI.COMM_WORLD.recv(dd, tam[0], MPI.BYTE, i, DATOS_REMOTOS);
+                T other = MAPPER.readValue(dd, cls);
+                acc = op.apply(acc, other);
+            }
+            return acc;
+        } else {
+            dd = MAPPER.writeValueAsBytes(local);
+            tam[0] = dd.length;
+            MPI.COMM_WORLD.send(tam, 1, MPI.INT, ROOT, TAM_BUFFER);
+            MPI.COMM_WORLD.send(dd, dd.length, MPI.BYTE, ROOT, DATOS_REMOTOS);
+            return local; // en no-root retornamos lo local (o null si prefieres)
+        }
+    }
+
+
 
     /**
      * Recolecta un objeto de cada proceso en el raiz y lo devuelve como lista.
