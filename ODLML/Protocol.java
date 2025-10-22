@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class Protocol<T extends DataLike> extends Thread {
 
+    private final LoadBalancingStrategy strategy = DLML.getStrategy();
+
     /** Clase de datos tipada tomada de la configuración global de DLML. */
     @SuppressWarnings("unchecked")
     private final Class<T> dataClass = (Class<T>) DLML.getDataClass();
@@ -116,24 +118,32 @@ public class Protocol<T extends DataLike> extends Thread {
 
                         if (requestAnswers == (DLML.total - 1)) {
                             requestAnswers = 0;
-                            max = 0;
-                            for (int i = 0; i < DLML.total; i++) {
-                                if (i != DLML.id && info[i] > max) {
-                                    max = info[i];
-                                    maxid = i;
-                                }
-                            }
 
-                            if (max > 0) {
-                                MPI.COMM_WORLD.send(m, 1, MPI.INT, maxid, DLML.DAME_DATOS);
+
+                            int donor = strategy.selectDonor(info, DLML.id);
+
+
+			    System.out.println("DONOR: "+donor + "SUBASTAS: "+csubastas);
+                            //max = 0;
+                            //for (int i = 0; i < DLML.total; i++) {
+                            //    if (i != DLML.id && info[i] > max) {
+                            //        max = info[i];
+                            //        maxid = i;
+                            //    }
+                            //}
+
+                            if (donor > 0) {
+                                MPI.COMM_WORLD.send(m, 1, MPI.INT, donor, DLML.DAME_DATOS);
                                 csubastas = 0;
                             } else {
                                 // No hay datos en otros procesos: reintentar subasta unas veces,
                                 // luego finalizar protocolo localmente y notificar a otros.
                                 if (csubastas < 2) {
+                                    System.out.println("DLML.id "+DLML.id+ " csubastas "+csubastas);
                                     MPI.COMM_WORLD.send(m, 1, MPI.INT, DLML.id, DLML.LISTA_VACIA);
                                     csubastas++;
                                 } else {
+                                    System.out.println("DLML.id "+DLML.id+ " FINALIZANDO.....");
                                     m[0] = 0;
                                     DLML.mutex.release();
 
@@ -157,6 +167,7 @@ public class Protocol<T extends DataLike> extends Thread {
                                     }
                                 }
                             }
+                            //for (int i = 0; i < info.length; i++) info[i] = 0;
                         }
                         break;
 

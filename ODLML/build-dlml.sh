@@ -5,7 +5,8 @@ set -e
 OPENMPI_HOME=${OPENMPI_HOME:-/opt/openmpi-5.0.8}
 # =====================================================================
 
-SRC_FILES="DataLike.java DLML.java DLMLOne.java Protocol.java"
+#SRC_FILES="DataLike.java DLML.java DLMLOne.java Protocol.java"
+SRC_FILES="AuctionStrategy.java  LoadBalancingStrategy.java Protocol.java RoundRobinStrategy.java StrategyFactory.java StrategyType.java WorkStealingStrategy.java DLML.java DLMLOne.java DataLike.java"
 BUILD_DIR="build-dlml"
 DIST_DIR="dist"
 VER="1.0"

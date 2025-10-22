@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 class DLML<T extends DataLike> {
 
+    static LoadBalancingStrategy STRATEGY = StrategyFactory.create(StrategyType.AUCTION);
+
+
     /** Cola de datos compartida. El acceso se coordina via {@link Protocol} y semaforos. */
     static final LinkedList<DataLike> data = new LinkedList<>();
 
@@ -61,6 +64,29 @@ class DLML<T extends DataLike> {
     /** Mapper JSON reutilizable para reducir overhead de creacion. */
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+
+
+
+public static void setStrategy(LoadBalancingStrategy s) {
+    if (s != null) STRATEGY = s;
+}
+public static LoadBalancingStrategy getStrategy() { return STRATEGY; }
+
+// utilidad interna
+private static void configureStrategyFromEnv() {
+    String prop = System.getProperty("odlml.strategy");      // ej: -Dodlml.strategy=workstealing
+    String env  = System.getenv("ODLML_STRATEGY");           // ej: ODLML_STRATEGY=roundrobin
+    String pick = (prop != null && !prop.isEmpty()) ? prop : env;
+    System.out.println("ID: "+id+" prop "+prop+" env "+env+" pick "+pick);
+
+    StrategyType t = StrategyType.fromString(pick);
+    STRATEGY = StrategyFactory.create(t);
+}
+
+
+
+
+
     /**
      * Establece la clase de datos por defecto a utilizar en conversiones tipadas.
      *
@@ -86,6 +112,7 @@ class DLML<T extends DataLike> {
      * @throws MPIException si ocurre un error en la inicializacion de MPI
      */
     public static void Init(String[] args) throws MPIException {
+        configureStrategyFromEnv();
         protocol = new Protocol();
         MPI.InitThread(args, MPI.THREAD_MULTIPLE);
         id = MPI.COMM_WORLD.getRank();
